@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI ERP Manual Assistant (MVP)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  </script>
+
+  <!-- Custom Scrollbar & Transition Styles -->
+  <style>
+    /* Custom Scrollbar Styles */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Smooth CSS Transitions */
+    .transition-all-300 {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans antialiased transition-all-300">
+
+  <!-- ================= HEADER / TOP NAVBAR ================= -->
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md shadow-brand-500/20 flex items-center justify-center">
+        <i data-lucide="cpu" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-brand-500 dark:to-indigo-400 bg-clip-text text-transparent">
+          AI ERP Manual Assistant
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Enterprise Intelligence Suite </p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <!-- Dark Mode Toggle -->
+      <button id="themeToggleBtn" class="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all-300 text-slate-600 dark:text-slate-300" title="Toggle Theme">
+        <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden"></i>
+        <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Settings Button -->
+      <button id="openSettingsBtn" class="flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all-300 font-semibold text-sm" title="Configure Keys">
+        <i data-lucide="settings" class="w-4 h-4 text-slate-600 dark:text-slate-300 animate-spin-hover"></i>
+        <span>API Settings</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN THREE-PANEL LAYOUT ================= -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+    <!-- 🟦 LEFT PANEL: PDF Upload & Control (20% Desktop) -->
+    <section class="lg:w-[22%] w-full border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-950 flex flex-col space-y-5 overflow-y-auto">
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Source Document</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Upload your ERP product/user manuals to build the knowledge base context.</p>
+      </div>
+
+      <!-- Drag & Drop PDF Upload Box -->
+      <div id="dropZone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-500 dark:hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-900/10 transition-all-300 group">
+        <input type="file" id="pdfFileInput" accept="application/pdf" class="hidden" />
+        <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-full mb-3 group-hover:scale-110 transition-transform duration-300 text-slate-600 dark:text-slate-300">
+          <i data-lucide="file-up" class="w-6 h-6"></i>
+        </div>
+        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Drag & Drop PDF here</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">or browser local files</p>
+        <button id="browseBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all-300">
+          Browse File
+        </button>
+      </div>
+
+      <!-- Uploaded File Metadata Frame -->
+      <div id="fileMetaContainer" class="hidden bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-start space-x-3 relative">
+        <div class="bg-red-50 dark:bg-red-950/30 text-red-500 p-2.5 rounded-lg">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1 min-w-0 pr-6">
+          <h4 id="metaFileName" class="text-sm font-semibold truncate text-slate-800 dark:text-slate-200">ERP_Manual.pdf</h4>
+          <p id="metaFileSize" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">0.0 MB</p>
+          <div class="flex items-center space-x-1.5 mt-2 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+            <span>Ready for query</span>
+          </div>
+        </div>
+        <button id="removeFileBtn" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Remove PDF">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Quick Document Insights Info -->
+      <div class="bg-brand-50/50 dark:bg-brand-950/10 border border-brand-100/60 dark:border-brand-900/30 rounded-xl p-4">
+        <h3 class="text-xs font-bold text-brand-900 dark:text-brand-300 uppercase tracking-wider mb-2">How it works</h3>
+        <ol class="text-xs space-y-2 text-slate-600 dark:text-slate-300 list-decimal pl-4">
+          <li>Input your Gemini API Key in <strong>API Settings</strong> (optional if default runtime is available).</li>
+          <li>Upload any PDF user manual or ERP specification document.</li>
+          <li>Our engine securely extracts text snippets contextually.</li>
+          <li>Query the AI directly with workflow questions!</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 🟩 CENTER PANEL: PDF Previewer (50% Desktop) -->
+    <section class="lg:w-[48%] w-full border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-100 dark:bg-slate-900/40 relative">
+      <!-- Toolbar -->
+      <div class="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Document Reader</span>
+        </div>
+
+        <!-- Rendering Controls (only active when PDF is loaded) -->
+        <div id="pdfControls" class="flex items-center space-x-2 opacity-50 pointer-events-none transition-opacity duration-300">
+          <button id="prevPageBtn" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all-300 disabled:opacity-40" disabled>
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <span class="text-xs font-semibold text-slate-600 dark:text-slate-400 min-w-[70px] text-center">
+            Page <span id="currentPageNum">1</span> / <span id="totalPageNum">1</span>
+          </span>
+          <button id="nextPageBtn" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all-300 disabled:opacity-40" disabled>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+          
+          <div class="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+          <button id="zoomOutBtn" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all-300">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <span id="zoomIndicator" class="text-xs font-semibold text-slate-600 dark:text-slate-400 min-w-[40px] text-center">100%</span>
+          <button id="zoomInBtn" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all-300">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Rendering Frame -->
+      <div id="pdfViewerArea" class="flex-1 overflow-auto p-6 flex justify-center items-start relative min-h-[400px]">
+        <!-- Empty State UI -->
+        <div id="pdfEmptyState" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-slate-950">
+          <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl max-w-sm flex flex-col items-center shadow-lg shadow-slate-100 dark:shadow-none">
+            <div class="bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 p-4 rounded-2xl mb-4">
+              <i data-lucide="file-search-2" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">No Document Preloaded</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">Please upload an ERP PDF manual on the left panel to display interactive page layouts here.</p>
+          </div>
+        </div>
+
+        <!-- Render Target (Canvas Wrapper) -->
+        <div id="pdfCanvasContainer" class="hidden shadow-2xl border border-slate-300 dark:border-slate-800 rounded bg-white transition-all-300 my-auto">
+          <canvas id="pdfCanvas" class="block mx-auto max-w-full"></canvas>
+        </div>
+
+        <!-- Document Rendering Overlay Loader -->
+        <div id="pdfRendererSpinner" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-all-300">
+          <div class="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">Parsing & Rendering ERP Manual Pages...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 🟪 RIGHT PANEL: CHATBOT (30% Desktop) -->
+    <section class="lg:w-[30%] w-full flex flex-col bg-white dark:bg-slate-950 relative">
+      <!-- Chat Header -->
+      <div class="border-b border-slate-200 dark:border-slate-800 px-5 py-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Context Copilot</span>
+        </div>
+
+        <div class="flex items-center space-x-1">
+          <!-- Clear Chat -->
+          <button id="clearChatBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title="Reset Conversational Stream">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+          <!-- Export Chat -->
+          <button id="exportChatBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title="Export Chat Log (TXT)">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Context Action Grid (Floating/Anchored Prompt Injectors) -->
+      <div class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap">
+        <button class="quick-action-btn bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-all-300 flex items-center space-x-1 flex-shrink-0 shadow-sm" data-prompt="Summarize Document">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-500"></i>
+          <span>Summarize</span>
+        </button>
+        <button class="quick-action-btn bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-all-300 flex items-center space-x-1 flex-shrink-0 shadow-sm" data-prompt="Explain Workflow">
+          <i data-lucide="git-branch" class="w-3.5 h-3.5 text-brand-500"></i>
+          <span>Workflows</span>
+        </button>
+        <button class="quick-action-btn bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-all-300 flex items-center space-x-1 flex-shrink-0 shadow-sm" data-prompt="Key Concepts">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-indigo-500"></i>
+          <span>Concepts</span>
+        </button>
+        <button class="quick-action-btn bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-all-300 flex items-center space-x-1 flex-shrink-0 shadow-sm" data-prompt="Important Terms">
+          <i data-lucide="bookmark" class="w-3.5 h-3.5 text-purple-500"></i>
+          <span>Terms</span>
+        </button>
+        <button class="quick-action-btn bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 transition-all-300 flex items-center space-x-1 flex-shrink-0 shadow-sm" data-prompt="Training Notes">
+          <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-pink-500"></i>
+          <span>Training</span>
+        </button>
+      </div>
+
+      <!-- Live Messaging Screen Frame -->
+      <div id="chatMessageArea" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/10">
+        <!-- Initial Onboarding Chat State -->
+        <div id="chatEmptyState" class="flex flex-col items-center justify-center h-full text-center px-4">
+          <div class="bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400 p-3 rounded-full mb-3">
+            <i data-lucide="message-square" class="w-6 h-6"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">Interactive Copilot Console</h4>
+          <p class="text-xs text-slate-400 dark:text-slate-500 max-w-xs">Ask general questions anytime, or upload an ERP PDF manual on the left panel to query with specific page reference citations!</p>
+        </div>
+      </div>
+
+      <!-- Typing Indicator Structure (Initially Hidden) -->
+      <div id="typingIndicator" class="hidden px-5 py-3 bg-slate-50/50 dark:bg-slate-900/30 flex items-center space-x-2 border-t border-slate-100 dark:border-slate-900">
+        <div class="flex space-x-1">
+          <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+          <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+          <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+        </div>
+        <span class="text-xs font-semibold text-slate-400">Assistant is thinking...</span>
+      </div>
+
+      <!-- Message Form Input Area (Pinned to Bottom) -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+        <form id="chatForm" class="flex items-center space-x-2 relative">
+          <textarea id="chatInput" placeholder="Ask questions about the uploaded ERP manual or any general topics..." rows="1" class="flex-1 max-h-[120px] resize-none border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-500 focus:bg-white dark:focus:bg-slate-950 transition-all duration-200 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 scrollbar-none"></textarea>
+          
+          <button type="submit" id="sendMessageBtn" class="bg-brand-600 hover:bg-brand-700 text-white p-3 rounded-xl shadow-md shadow-brand-500/10 hover:shadow-brand-500/20 active:scale-95 transition-all-300 flex-shrink-0 flex items-center justify-center">
+            <i data-lucide="send-horizontal" class="w-5 h-5"></i>
+          </button>
+        </form>
+        <p class="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2">Powered Magnitech. APIs using local browser keys</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= SETTINGS CONFIGURATION MODAL ================= -->
+  <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden opacity-0 transition-all-300 duration-300">
+    <!-- Modal Dialog Window -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 rounded-2xl shadow-2xl relative transform scale-95 transition-all-300 duration-300">
+      <button id="closeSettingsBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-6">
+        <div class="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 p-2.5 rounded-xl">
+          <i data-lucide="key" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">API Settings</h3>
+          <p class="text-xs text-slate-400 dark:text-slate-500 font-medium">Configure models & localized credentials</p>
+        </div>
+      </div>
+
+      <!-- Settings Form -->
+      <form id="settingsForm" class="space-y-4">
+        <div>
+          <label for="geminiKeyInput" class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Gemini API Key</label>
+          <div class="relative flex items-center">
+            <input type="password" id="geminiKeyInput" placeholder="AIzaSy... (optional if using system key)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-4 pr-11 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-100" />
+            <button type="button" id="toggleKeyVisibilityBtn" class="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <i data-lucide="eye" id="showKeyIcon" class="w-4.5 h-4.5"></i>
+              <i data-lucide="eye-off" id="hideKeyIcon" class="w-4.5 h-4.5 hidden"></i>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2 flex items-start space-x-1.5 leading-relaxed">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i>
+            <span>Your API key is stored only inside your browser (localStorage). Leaving this blank defaults to the platform's sandbox credentials.</span>
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-2">
+          <button type="button" id="cancelSettingsBtn" class="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold rounded-xl transition-all-300">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 transition-all-300">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= FLOATING TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toastContainer" class="fixed bottom-6 left-6 z-50 flex flex-col space-y-2.5 max-w-sm w-full"></div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // --- Application State Manager ---
+    const STATE = {
+      pdfText: '',            // Stores extracted text content from all pages of the uploaded document
+      pdfDoc: null,           // Native PDFJS document object instance
+      currentPage: 1,        // Current active preview page index
+      zoomScale: 1.0,         // Zoom metric tracking
+      geminiApiKey: '',       // Active Gemini credentials
+      messages: [],           // Conversation transcript storage
+      isRendering: false      // Prevent thread collisions during page drawing
+    };
+
+    // --- DOM Cache References ---
+    const DOM = {
+      html: document.documentElement,
+      themeToggleBtn: document.getElementById('themeToggleBtn'),
+      sunIcon: document.getElementById('sunIcon'),
+      moonIcon: document.getElementById('moonIcon'),
+      openSettingsBtn: document.getElementById('openSettingsBtn'),
+      closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+      cancelSettingsBtn: document.getElementById('cancelSettingsBtn'),
+      settingsModal: document.getElementById('settingsModal'),
+      settingsForm: document.getElementById('settingsForm'),
+      geminiKeyInput: document.getElementById('geminiKeyInput'),
+      toggleKeyVisibilityBtn: document.getElementById('toggleKeyVisibilityBtn'),
+      showKeyIcon: document.getElementById('showKeyIcon'),
+      hideKeyIcon: document.getElementById('hideKeyIcon'),
+      dropZone: document.getElementById('dropZone'),
+      pdfFileInput: document.getElementById('pdfFileInput'),
+      browseBtn: document.getElementById('browseBtn'),
+      fileMetaContainer: document.getElementById('fileMetaContainer'),
+      metaFileName: document.getElementById('metaFileName'),
+      metaFileSize: document.getElementById('metaFileSize'),
+      removeFileBtn: document.getElementById('removeFileBtn'),
+      pdfControls: document.getElementById('pdfControls'),
+      prevPageBtn: document.getElementById('prevPageBtn'),
+      currentPageNum: document.getElementById('currentPageNum'),
+      totalPageNum: document.getElementById('totalPageNum'),
+      nextPageBtn: document.getElementById('nextPageBtn'),
+      zoomOutBtn: document.getElementById('zoomOutBtn'),
+      zoomInBtn: document.getElementById('zoomInBtn'),
+      zoomIndicator: document.getElementById('zoomIndicator'),
+      pdfViewerArea: document.getElementById('pdfViewerArea'),
+      pdfEmptyState: document.getElementById('pdfEmptyState'),
+      pdfCanvasContainer: document.getElementById('pdfCanvasContainer'),
+      pdfCanvas: document.getElementById('pdfCanvas'),
+      pdfRendererSpinner: document.getElementById('pdfRendererSpinner'),
+      clearChatBtn: document.getElementById('clearChatBtn'),
+      exportChatBtn: document.getElementById('exportChatBtn'),
+      chatMessageArea: document.getElementById('chatMessageArea'),
+      chatEmptyState: document.getElementById('chatEmptyState'),
+      typingIndicator: document.getElementById('typingIndicator'),
+      chatForm: document.getElementById('chatForm'),
+      chatInput: document.getElementById('chatInput'),
+      toastContainer: document.getElementById('toastContainer')
+    };
+
+    // --- Core Operations Modifiers ---
+    const App = {
+      init() {
+        this.loadSettings();
+        this.setupEventListeners();
+        this.initializeIcons();
+        this.detectThemePreference();
+        this.renderInitialState();
+      },
+
+      initializeIcons() {
+        // Hydrate all custom icons using Lucide Library
+        lucide.createIcons();
+      },
+
+      // --- Local Storage & Settings ---
+      loadSettings() {
+        const storedKey = localStorage.getItem('gemini_api_key');
+        if (storedKey) {
+          STATE.geminiApiKey = storedKey;
+          DOM.geminiKeyInput.value = storedKey;
+        }
+      },
+
+      saveSettings(key) {
+        STATE.geminiApiKey = key.trim();
+        localStorage.setItem('gemini_api_key', STATE.geminiApiKey);
+        this.showToast('Credentials saved successfully!', 'success');
+      },
+
+      // --- UI Feedback & Modals ---
+      showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `flex items-center p-4 rounded-xl border bg-white dark:bg-slate-900 shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 flex justify-between space-x-3 ${
+          type === 'success' ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400' :
+          type === 'error' ? 'border-red-500/30 text-red-600 dark:text-red-400' :
+          'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+        }`;
+        
+        let iconMarkup = '<i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>';
+        if (type === 'success') iconMarkup = '<i data-lucide="check-circle" class="w-5 h-5 flex-shrink-0"></i>';
+        if (type === 'error') iconMarkup = '<i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>';
+
+        toast.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            ${iconMarkup}
+            <span class="text-xs font-bold">${message}</span>
+          </div>
+          <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex-shrink-0" onclick="this.parentElement.remove()">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+
+        DOM.toastContainer.appendChild(toast);
+        lucide.createIcons({attrs: {"stroke-width": 2}});
+
+        // Trigger Entry Animation Frame
+        setTimeout(() => {
+          toast.classList.remove('translate-y-2', 'opacity-0');
+        }, 50);
+
+        // Auto Dismiss Timings
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'scale-95');
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        }, 4000);
+      },
+
+      toggleModal(modal, show) {
+        if (show) {
+          modal.classList.remove('hidden');
+          setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('div').classList.remove('scale-95');
+          }, 50);
+        } else {
+          modal.classList.add('opacity-0');
+          modal.querySelector('div').classList.add('scale-95');
+          setTimeout(() => {
+            modal.classList.add('hidden');
+          }, 300);
+        }
+      },
+
+      // --- Theme Handling ---
+      detectThemePreference() {
+        const activeTheme = localStorage.getItem('theme_preference');
+        if (activeTheme === 'dark' || (!activeTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          DOM.html.classList.add('dark');
+          DOM.sunIcon.classList.remove('hidden');
+          DOM.moonIcon.classList.add('hidden');
+        } else {
+          DOM.html.classList.remove('dark');
+          DOM.sunIcon.classList.add('hidden');
+          DOM.moonIcon.classList.remove('hidden');
+        }
+      },
+
+      toggleTheme() {
+        if (DOM.html.classList.contains('dark')) {
+          DOM.html.classList.remove('dark');
+          localStorage.setItem('theme_preference', 'light');
+          DOM.sunIcon.classList.add('hidden');
+          DOM.moonIcon.classList.remove('hidden');
+          this.showToast('Switched to Light Mode', 'info');
+        } else {
+          DOM.html.classList.add('dark');
+          localStorage.setItem('theme_preference', 'dark');
+          DOM.sunIcon.classList.remove('hidden');
+          DOM.moonIcon.classList.add('hidden');
+          this.showToast('Switched to Dark Mode', 'info');
+        }
+      },
+
+      // --- PDF Operations ---
+      async handlePDFUpload(file) {
+        if (!file || file.type !== 'application/pdf') {
+          this.showToast('Please select a valid PDF manual', 'error');
+          return;
+        }
+
+        // Lock rendering layers UI
+        DOM.pdfRendererSpinner.classList.remove('hidden');
+        DOM.pdfControls.classList.add('opacity-50', 'pointer-events-none');
+        DOM.pdfEmptyState.classList.add('hidden');
+        DOM.pdfCanvasContainer.classList.add('hidden');
+
+        // Capture meta parameters
+        DOM.metaFileName.textContent = file.name;
+        DOM.metaFileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+        DOM.fileMetaContainer.classList.remove('hidden');
+        DOM.dropZone.classList.add('hidden');
+
+        try {
+          const fileReader = new FileReader();
+          fileReader.onload = async (e) => {
+            const typedArray = new Uint8Array(e.target.result);
+            try {
+              // Core initialization parameters to extract page content cleanly
+              const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+              STATE.pdfDoc = pdf;
+              STATE.currentPage = 1;
+              STATE.zoomScale = 1.0;
+              DOM.totalPageNum.textContent = pdf.numPages;
+
+              // Extract text metrics in async pipeline
+              await this.extractTextFromPDF(pdf);
+
+              // Render default state
+              await this.renderPage(1);
+
+              // Unlock preview panel controllers
+              DOM.pdfControls.classList.remove('opacity-50', 'pointer-events-none');
+              DOM.pdfCanvasContainer.classList.remove('hidden');
+              this.showToast('Document analyzed & context loaded. Citations ready.', 'success');
+            } catch (err) {
+              console.error("Reader Error: ", err);
+              this.resetDocumentState();
+              this.showToast('Failed parsing the specified PDF manual', 'error');
+            } finally {
+              DOM.pdfRendererSpinner.classList.add('hidden');
+            }
+          };
+          fileReader.readAsArrayBuffer(file);
+        } catch (error) {
+          console.error("General PDF Upload Error: ", error);
+          this.resetDocumentState();
+          this.showToast('Could not process PDF upload workflow.', 'error');
+          DOM.pdfRendererSpinner.classList.add('hidden');
+        }
+      },
+
+      async extractTextFromPDF(pdf) {
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          try {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageItems = textContent.items.map(item => item.str).join(' ');
+            fullText += `--- Page ${pageNum} ---\n${pageItems}\n\n`;
+          } catch (error) {
+            console.warn(`Extraction fault page ${pageNum}: `, error);
+          }
+        }
+        STATE.pdfText = fullText.trim();
+      },
+
+      async renderPage(pageNum) {
+        if (!STATE.pdfDoc || STATE.isRendering) return;
+        STATE.isRendering = true;
+        DOM.pdfRendererSpinner.classList.remove('hidden');
+
+        try {
+          const page = await STATE.pdfDoc.getPage(pageNum);
+          const viewport = page.getViewport({ scale: STATE.zoomScale });
+          
+          const canvas = DOM.pdfCanvas;
+          const context = canvas.getContext('2d');
+          
+          // Adjust canvas configurations dynamically
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          const renderContext = {
+            canvasContext: context,
+            viewport: viewport
+          };
+
+          await page.render(renderContext).promise;
+          
+          // Update control layout state trackers
+          STATE.currentPage = pageNum;
+          DOM.currentPageNum.textContent = pageNum;
+          DOM.zoomIndicator.textContent = Math.round(STATE.zoomScale * 100) + '%';
+
+          // Enable/Disable step controls based on scope
+          DOM.prevPageBtn.disabled = pageNum <= 1;
+          DOM.nextPageBtn.disabled = pageNum >= STATE.pdfDoc.numPages;
+        } catch (error) {
+          console.error("Renderer Draw fault: ", error);
+          this.showToast('Renderer failed drawing the document screen.', 'error');
+        } finally {
+          STATE.isRendering = false;
+          DOM.pdfRendererSpinner.classList.add('hidden');
+        }
+      },
+
+      changePage(offset) {
+        if (!STATE.pdfDoc) return;
+        const targetPage = STATE.currentPage + offset;
+        if (targetPage >= 1 && targetPage <= STATE.pdfDoc.numPages) {
+          this.renderPage(targetPage);
+        }
+      },
+
+      zoom(scaleChange) {
+        if (!STATE.pdfDoc) return;
+        const targetZoom = STATE.zoomScale + scaleChange;
+        if (targetZoom >= 0.5 && targetZoom <= 2.5) {
+          STATE.zoomScale = parseFloat(targetZoom.toFixed(1));
+          this.renderPage(STATE.currentPage);
+        }
+      },
+
+      resetDocumentState() {
+        STATE.pdfDoc = null;
+        STATE.pdfText = '';
+        STATE.currentPage = 1;
+        STATE.zoomScale = 1.0;
+
+        DOM.pdfControls.classList.add('opacity-50', 'pointer-events-none');
+        DOM.fileMetaContainer.classList.add('hidden');
+        DOM.dropZone.classList.remove('hidden');
+        DOM.pdfEmptyState.classList.remove('hidden');
+        DOM.pdfCanvasContainer.classList.add('hidden');
+        DOM.pdfFileInput.value = '';
+
+        this.showToast('Manual database flushed.', 'info');
+      },
+
+      renderInitialState() {
+        // Hydrate baseline views
+        this.appendMessage('assistant', "Hello! I am your interactive agentic ERP Manual Assistant. You can ask me generic questions directly (e.g., *'who was the first prime minister of india'*), or upload an ERP manual to ask questions with precise page citation references.");
+      },
+
+      // --- Conversational Assistant Architecture ---
+      appendMessage(role, text) {
+        // Clean out default placeholder graphics on interactive message stream
+        DOM.chatEmptyState.classList.add('hidden');
+
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageId = `msg_${Date.now()}`;
+        
+        const messageContainer = document.createElement('div');
+        messageContainer.id = messageId;
+        messageContainer.className = `flex w-full flex-col group ${role === 'user' ? 'items-end' : 'items-start'}`;
+
+        const isUser = role === 'user';
+        
+        // Escape characters, keeping markdown links or code rendering elements simplified for MVP
+        const displayMessage = text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\n/g, '<br/>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/`([^`]+)`/g, '<code class="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">$1</code>');
+
+        messageContainer.innerHTML = `
+          <div class="max-w-[85%] flex flex-col space-y-1">
+            <div class="flex items-center space-x-1.5 px-1 ${isUser ? 'justify-end' : 'justify-start'}">
+              <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                ${isUser ? 'Operator' : 'AI Copilot'}
+              </span>
+              <span class="text-[9px] text-slate-400 dark:text-slate-500">•</span>
+              <span class="text-[9px] text-slate-400 dark:text-slate-500">${timestamp}</span>
+            </div>
+            
+            <div class="px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm transition-all duration-300 ${
+              isUser 
+                ? 'bg-brand-600 text-white rounded-tr-none shadow-brand-500/10' 
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-200/50 dark:border-slate-800'
+            }">
+              <p>${displayMessage}</p>
+            </div>
+          </div>
+        `;
+
+        DOM.chatMessageArea.appendChild(messageContainer);
+        DOM.chatMessageArea.scrollTop = DOM.chatMessageArea.scrollHeight;
+
+        // Push to transactional state memory
+        STATE.messages.push({ role, text, timestamp });
+      },
+
+      injectQuickAction(label) {
+        if (!STATE.pdfText) {
+          this.showToast('Please upload an ERP manual document first.', 'error');
+          return;
+        }
+
+        let dynamicPrompt = '';
+        switch(label) {
+          case 'Summarize Document':
+            dynamicPrompt = "Analyze the uploaded ERP manual and provide a high-level concise summary covering its scope, design purpose, target roles, and primary modules.";
+            break;
+          case 'Explain Workflow':
+            dynamicPrompt = "Identify the core lifecycle or operational workflows described within this manual. Break down their technical step-by-step progressions.";
+            break;
+          case 'Key Concepts':
+            dynamicPrompt = "Extract and explain the 5 primary design architectures, architectural principles, or operational features critical to understanding this ERP.";
+            break;
+          case 'Important Terms':
+            dynamicPrompt = "Construct a glossary dictionary of the most crucial business acronyms, database configurations, and proprietary terminologies within this manual.";
+            break;
+          case 'Training Notes':
+            dynamicPrompt = "Formulate a quick-reference training cheatsheet containing operator best-practices, common warning paradigms, and integration checklists.";
+            break;
+          default:
+            dynamicPrompt = `Provide a comprehensive breakdown concerning: "${label}"`;
+        }
+
+        DOM.chatInput.value = dynamicPrompt;
+        DOM.chatInput.focus();
+        
+        // Auto-resize trigger manually 
+        DOM.chatInput.style.height = 'auto';
+        DOM.chatInput.style.height = DOM.chatInput.scrollHeight + 'px';
+      },
+
+      clearChatStream() {
+        if (STATE.messages.length <= 1) return;
+        DOM.chatMessageArea.innerHTML = '';
+        STATE.messages = [];
+        this.renderInitialState();
+        this.showToast('Chat history cleared.', 'info');
+      },
+
+      exportChatLog() {
+        if (STATE.messages.length === 0) {
+          this.showToast('No active transcript to export.', 'error');
+          return;
+        }
+
+        let exportPayload = "=========================================\n";
+        exportPayload += "   AI ERP Manual Assistant Chat Transcript\n";
+        exportPayload += `   Date Exported: ${new Date().toLocaleDateString()}\n`;
+        exportPayload += "=========================================\n\n";
+
+        STATE.messages.forEach(msg => {
+          const roleUpper = msg.role.toUpperCase();
+          exportPayload += `[${msg.timestamp}] ${roleUpper}:\n${msg.text}\n\n`;
+        });
+
+        try {
+          // Construct down-download context
+          const blob = new Blob([exportPayload], { type: 'text/plain;charset=utf-8' });
+          const tempUrl = URL.createObjectURL(blob);
+          const downloadAnchor = document.createElement('a');
+          downloadAnchor.href = tempUrl;
+          downloadAnchor.download = `ERP_Assistant_Chat_Log_${Date.now()}.txt`;
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(downloadAnchor);
+            URL.revokeObjectURL(tempUrl);
+          }, 100);
+
+          this.showToast('Transcript exported to disk.', 'success');
+        } catch (err) {
+          this.showToast('Export pipeline fault detected.', 'error');
+        }
+      },
+
+      async handleChatSubmit(e) {
+        if (e) e.preventDefault();
+        
+        const rawInput = DOM.chatInput.value.trim();
+        if (!rawInput) return;
+
+        // Post User message
+        this.appendMessage('user', rawInput);
+        DOM.chatInput.value = '';
+        DOM.chatInput.style.height = 'auto';
+
+        // Display Thinking indicator
+        DOM.typingIndicator.classList.remove('hidden');
+        DOM.chatMessageArea.scrollTop = DOM.chatMessageArea.scrollHeight;
+
+        try {
+          const answer = await this.queryGeminiModel(rawInput);
+          this.appendMessage('assistant', answer);
+        } catch (error) {
+          console.error("Pipeline Exception: ", error);
+          // Mandated silent handling for technical failures
+          this.appendMessage('assistant', "👉 “AI service is currently unavailable. Please try again.”");
+        } finally {
+          DOM.typingIndicator.classList.add('hidden');
+        }
+      },
+
+      async queryGeminiModel(userQuestion) {
+        // Constructing an agentic prompt that instructs the model to switch behaviors automatically based on context:
+        const promptText = `You are an Agentic ERP Assistant & General Intelligence Copilot.
+
+ROLE & BEHAVIORAL PROTOCOLS:
+1. You have access to the parsed document text context below (if a document has been uploaded).
+2. Determine if the user's question relates to the uploaded document context, or if it is a generic/general knowledge question (e.g., historical inquiries, general programming, math, jokes, trivia, etc.).
+
+--- CASE A: THE USER'S QUESTION IS RELATED TO THE UPLOADED DOCUMENT ---
+- Answer the user's question directly, comprehensively, and professionally using ONLY the facts present inside the document context.
+- You MUST cite the specific page or pages where you found the answer. Scan the page markers (e.g., "--- Page X ---") in the text context and present citations in clear bracket format, e.g., "This feature is configured in system setting [Page 3]." or "according to Page 5...".
+
+--- CASE B: THE USER'S QUESTION IS A GENERIC/GENERAL KNOWLEDGE QUESTION OR NO DOCUMENT IS PROVIDED ---
+- DO NOT refuse to answer. DO NOT say "I could not find this information in the manual".
+- Use your broad, pre-trained general knowledge database to answer the user's question fully, accurately, and helpfuly (e.g. "Who was the first prime minister of India?", general tips, etc.).
+- Simply provide a brief notification at the start or end of the response stating that this answer was sourced from general knowledge (e.g. "[Note: Sourced from general knowledge]").
+
+UPLOADED DOCUMENT CONTENT:
+${STATE.pdfText ? STATE.pdfText : "[No document has been uploaded yet by the operator]"}
+
+USER'S QUESTION:
+${userQuestion}`;
+
+        const userKey = STATE.geminiApiKey ? STATE.geminiApiKey.trim() : "";
+        let modelsToTry = [];
+
+        // Dynamic routing logic to handle environment key vs client personal keys
+        if (userKey) {
+          // User input their own API key - try universally accessible production models
+          modelsToTry = [
+            { name: "gemini-2.5-flash", key: userKey },
+            { name: "gemini-1.5-flash", key: userKey },
+            { name: "gemini-2.5-flash-preview-09-2025", key: userKey }
+          ];
+        } else {
+          // No user key configured - default to the preview system sandbox model and credentials
+          modelsToTry = [
+            { name: "gemini-2.5-flash-preview-09-2025", key: "" }
+          ];
+        }
+
+        const requestBody = {
+          contents: [
+            {
+              parts: [
+                { text: promptText }
+              ]
+            }
+          ]
+        };
+
+        let lastError = null;
+        for (const config of modelsToTry) {
+          try {
+            const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.name}:generateContent?key=${config.key}`;
+            const responseText = await this.fetchWithRetry(targetUrl, requestBody);
+            return responseText; // Successful query response returned
+          } catch (err) {
+            console.warn(`Attempt failed for model ${config.name}:`, err);
+            lastError = err;
+          }
+        }
+
+        throw lastError || new Error("All endpoints failed execution.");
+      },
+
+      async fetchWithRetry(url, payload, retries = 5) {
+        const delays = [1000, 2000, 4000, 8000, 16000];
+        
+        for (let i = 0; i <= retries; i++) {
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              const errText = `HTTP Error Status: ${response.status}`;
+              // Permanent Client/Auth errors (4xx) should exit the retry loop immediately
+              if (response.status >= 400 && response.status < 500) {
+                const err = new Error(errText);
+                err.status = response.status;
+                throw err;
+              }
+              throw new Error(errText);
+            }
+
+            const data = await response.json();
+            const rawResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (!rawResponseText) {
+              throw new Error("Malformatted Response Package");
+            }
+
+            return rawResponseText;
+          } catch (error) {
+            // Instantly propagate permanent client errors (400-499) to fallback logic
+            if (error.status && error.status >= 400 && error.status < 500) {
+              throw error;
+            }
+            // Check retry limitations for transient errors
+            if (i === retries) {
+              throw error;
+            }
+            await new Promise(res => setTimeout(res, delays[i]));
+          }
+        }
+      },
+
+      // --- Interaction Wiring ---
+      setupEventListeners() {
+        // Theme button click
+        DOM.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+
+        // Modal Operations
+        DOM.openSettingsBtn.addEventListener('click', () => this.toggleModal(DOM.settingsModal, true));
+        DOM.closeSettingsBtn.addEventListener('click', () => this.toggleModal(DOM.settingsModal, false));
+        DOM.cancelSettingsBtn.addEventListener('click', () => this.toggleModal(DOM.settingsModal, false));
+        DOM.settingsModal.addEventListener('click', (e) => {
+          if (e.target === DOM.settingsModal) this.toggleModal(DOM.settingsModal, false);
+        });
+
+        // Toggle Key Visibility input
+        DOM.toggleKeyVisibilityBtn.addEventListener('click', () => {
+          const isPasswordType = DOM.geminiKeyInput.type === 'password';
+          DOM.geminiKeyInput.type = isPasswordType ? 'text' : 'password';
+          DOM.showKeyIcon.classList.toggle('hidden', !isPasswordType);
+          DOM.hideKeyIcon.classList.toggle('hidden', isPasswordType);
+        });
+
+        // Settings Form Submission
+        DOM.settingsForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.saveSettings(DOM.geminiKeyInput.value);
+          this.toggleModal(DOM.settingsModal, false);
+        });
+
+        // Drag & Drop Handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+          DOM.dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            DOM.dropZone.classList.add('border-brand-500', 'bg-brand-50/50', 'dark:bg-brand-900/10');
+          }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+          DOM.dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            DOM.dropZone.classList.remove('border-brand-500', 'bg-brand-50/50', 'dark:bg-brand-900/10');
+          }, false);
+        });
+
+        DOM.dropZone.addEventListener('drop', (e) => {
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            this.handlePDFUpload(files[0]);
+          }
+        });
+
+        DOM.dropZone.addEventListener('click', (e) => {
+          // Prevent triggers clicking the interior action triggers
+          if (e.target !== DOM.browseBtn) {
+            DOM.pdfFileInput.click();
+          }
+        });
+
+        DOM.browseBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          DOM.pdfFileInput.click();
+        });
+
+        DOM.pdfFileInput.addEventListener('change', (e) => {
+          if (e.target.files.length > 0) {
+            this.handlePDFUpload(e.target.files[0]);
+          }
+        });
+
+        // Clear uploaded document action
+        DOM.removeFileBtn.addEventListener('click', () => this.resetDocumentState());
+
+        // PDF Pagination Buttons
+        DOM.prevPageBtn.addEventListener('click', () => this.changePage(-1));
+        DOM.nextPageBtn.addEventListener('click', () => this.changePage(1));
+
+        // PDF Zooming Controls
+        DOM.zoomInBtn.addEventListener('click', () => this.zoom(0.2));
+        DOM.zoomOutBtn.addEventListener('click', () => this.zoom(-0.2));
+
+        // Chat Form Submission Pipeline
+        DOM.chatForm.addEventListener('submit', (e) => this.handleChatSubmit(e));
+
+        // Enter Key Action trigger for Textarea
+        DOM.chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.handleChatSubmit();
+          }
+        });
+
+        // Self-adjusting textarea height logic
+        DOM.chatInput.addEventListener('input', () => {
+          DOM.chatInput.style.height = 'auto';
+          DOM.chatInput.style.height = DOM.chatInput.scrollHeight + 'px';
+        });
+
+        // Clear Chat logs action
+        DOM.clearChatBtn.addEventListener('click', () => this.clearChatStream());
+
+        // Export active chat log
+        DOM.exportChatBtn.addEventListener('click', () => this.exportChatLog());
+
+        // Bind quick prompt action triggers
+        document.querySelectorAll('.quick-action-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const promptType = btn.getAttribute('data-prompt');
+            this.injectQuickAction(promptType);
+          });
+        });
+      }
+    };
+
+    // --- Onload Start Process ---
+    window.onload = () => {
+      App.init();
+    };
+  </script>
+</body>
+</html>
